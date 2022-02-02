@@ -258,6 +258,11 @@ export type ItemEventoNovoIngressoParamList = {
   ticket_value: string;
 };
 
+export type ItemBudGetOfferParamList = {
+  navigation: any;
+  budgetData: any;
+};
+
 export type ItemBudGetParamList = {
   active: boolean;
   navigation: any;

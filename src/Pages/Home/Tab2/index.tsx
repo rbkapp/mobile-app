@@ -17,56 +17,19 @@ import noresult_eventos from '../../../../assets/images/noresult_eventos.png';
 import ItemBudget from './ItemBudget';
 
 import { NavTabParamList } from '../../../../types';
-import api from '../../../Services/api';
 import AuthContext from '../../../Contexts/auth';
-import Colors from '../../../../constants/Colors';
-import getDate from '../../../../hooks/getData';
 
 import database from '../../../config/firebase';
 
-const ColorTheme = Colors['Theme'];
 const deviceHeight = Dimensions.get('window').height;
 
 const Tab0 = ({ navigation, route, setTab }: NavTabParamList) => {
 	const { token } = useContext(AuthContext);
-	const [formEditable, setFormEditable] = useState<boolean>(true);
 
 	const [formLoad, setFormLoad] = useState(true);
-
-	interface IformDataBudGet {
-		id: number,
-		session: string,
-		type: string,
-		detalhes: string,
-		modelo: string,
-		marca: string,
-		ano: string,
-		cor: string,
-		tipo: string,
-		sessao: string,
-		image: string,
-
-		ofertas: number,
-	}
-
 	const [dataBudgets, setDataBudgets] = useState([]);
 
-	let docs = database.firestore().collection('budgets');
-
 	const loadDataBudgets = () => {
-		database.collection['budgets'].onSnapshot((query: any[]) => {
-			const list: any = [];
-
-			query.forEach(((doc: { data: () => any; }) => {
-				list.push(doc.data())
-			}))
-
-			setDataBudgets(list);
-			
-		})
-	}
-
-	useEffect(() => {
 		database
 			.firestore()
 			.collection("budgets")
@@ -78,7 +41,11 @@ const Tab0 = ({ navigation, route, setTab }: NavTabParamList) => {
 				setDataBudgets(listItems);
 				setFormLoad(false);
 			})
-	}, [])
+	}
+
+	useEffect(() => {
+		loadDataBudgets();
+	}, []);
 
 	return <SafeAreaView>
 		<ScrollView>
@@ -93,7 +60,7 @@ const Tab0 = ({ navigation, route, setTab }: NavTabParamList) => {
 						<NoResultLabel>Você ainda não fez solicitações.</NoResultLabel>
 					</>) : (
 						dataBudgets
-						.filter(itemFilter => itemFilter.status == '1')
+						.filter((itemFilter: any) => itemFilter.status == '1')
 						.map((item: any, index: number) => {
 							return (
 								<ItemBudget
@@ -118,7 +85,7 @@ const Tab0 = ({ navigation, route, setTab }: NavTabParamList) => {
 						<NoResultLabel>Você ainda não fez solicitações.</NoResultLabel>
 					</>) : (
 						dataBudgets
-						.filter(itemFilter => itemFilter.status == '2')
+						.filter((itemFilter: any) => itemFilter.status == '2')
 						.map((item: any, index: number) => {
 							return (
 								<ItemBudget
@@ -133,7 +100,10 @@ const Tab0 = ({ navigation, route, setTab }: NavTabParamList) => {
 				</EventIngressos>
 			</Container>
 		</ScrollView>
-		<ScreenLoader label='Carregando solicitações' active={formLoad} />
+		<ScreenLoader 
+			label='Carregando solicitações' 
+			active={formLoad} 
+		/>
 	</SafeAreaView>
 		;
 };

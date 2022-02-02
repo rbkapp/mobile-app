@@ -15,7 +15,7 @@ import {
 	MessageMe, MessageMeLabel,
 	OfertaItemInfosTitle, OfertaItemInfosLabel, OfertaItemInfosValue, OfertaItemInfosStatusGreen,
 	SendMessage, SendMessageInt, SendMessageIntSendBtn, SendMessageIntSendBtnicon,
-	SendMessageFileBtn,SendMessageFileBtnLabel,
+	SendMessageFileBtn, SendMessageFileBtnLabel,
 } from './styles';
 
 import HeaderIntPainel from '../../../../Components/HeaderIntPainel';
@@ -28,15 +28,61 @@ import { RootStackParamList } from '../../../../../types';
 type NavigationProp = StackNavigationProp<RootStackParamList, 'CotacoesDetalhesOfertas'>;
 interface Props { navigation: NavigationProp, route: any; }
 
-import Colors from '../../../../../constants/Colors';
-const ColorTheme = Colors['Theme'];
+import database from '../../../../config/firebase';
 
 const PerfilIngressos = ({ navigation, route }: Props) => {
 	const [budgetData, setBudgetData] = useState(route.params.budgetData);
 	const [formMessage, setFormMessage] = useState('');
 
-  useEffect(() => {
-      console.log('route.params.budgetData:' + JSON.stringify(route.params.budgetData));
+	const [dataPartner, setDataPartner] = useState<any>([]);
+	const [dataBudget, setDataBudget] = useState<any>([]);
+	const [dataBudgetOfers, setDataBudgetOfers] = useState<any>([]);
+
+	function loadDataPartner() {
+		database
+			.firestore()
+			.collection("partners")
+			.doc(budgetData.partner_id)
+			.onSnapshot((doc: { data: () => any; }) => {
+				if (doc) {
+					setDataPartner(doc.data());
+				}
+			});
+	}
+
+	function loadDataBudget() {
+		database
+			.firestore()
+			.collection("budgets")
+			.doc(budgetData.budget_id)
+			.onSnapshot((doc: { data: () => any; }) => {
+				if (doc) {
+					setDataBudget(doc.data());
+					console.log('doc.data(): ' + doc.data())
+				}
+			});
+	}
+
+	function loadDataBudgetOferChats() {
+		database
+			.firestore()
+			.collection("budgets_offers_chats")
+			.where("budgets_offer_id", '==', 'EVi5l4Ul8JUf4m1YOxRh')
+			.orderBy("create_at", "asc")
+			.onSnapshot((snapshot: { docs: any[]; }) => {
+				const listItems: any = snapshot.docs.map(doc => ({
+					id: doc.id,
+					...doc.data(),
+				}))
+				setDataBudgetOfers(listItems);
+			});
+	}
+
+	useEffect(() => {
+		console.log('route.params.budgetData:' + JSON.stringify(route.params.budgetData));
+		loadDataPartner();
+		loadDataBudget();
+		loadDataBudgetOferChats();
 	}, []);
 
 	return <SafeAreaView>
@@ -44,10 +90,10 @@ const PerfilIngressos = ({ navigation, route }: Props) => {
 			<Container>
 				<BudGetHead>
 					<BudGetHeadIconInfos>
-						<BudGetHeadIcon source={{ uri: budgetData.image}} />
+						<BudGetHeadIcon source={{ uri: dataBudget?.avatar }} />
 						<BudGetHeadInfos>
-							<BudGetHeadInfosTitle>{budgetData.detalhes}</BudGetHeadInfosTitle>
-							<BudGetHeadInfosLabel>{budgetData.marca} - {budgetData.modelo}</BudGetHeadInfosLabel>
+							<BudGetHeadInfosTitle>{dataBudget?.description}</BudGetHeadInfosTitle>
+							<BudGetHeadInfosLabel>{dataBudget?.brand} - {dataBudget?.model}</BudGetHeadInfosLabel>
 						</BudGetHeadInfos>
 					</BudGetHeadIconInfos>
 
@@ -64,60 +110,84 @@ const PerfilIngressos = ({ navigation, route }: Props) => {
 					>
 						<BudGetHeadMessageBackBtnIcom source={arrow_back_icon} />
 					</BudGetHeadMessageBackBtn>
-					<BudGetHeadMessageLabel>{budgetData.parceiro}</BudGetHeadMessageLabel>
+					<BudGetHeadMessageLabel>{dataPartner?.name}</BudGetHeadMessageLabel>
 				</BudGetHeadMessage>
 
 				<FinanceiroCont>
-					<Message>
-						<OfertaItemInfos>
-							<OfertaItemInfosTitle>{budgetData.parceiro}</OfertaItemInfosTitle>
-							<OfertaItemInfosLabel>Olá temos essa peça em estoque!</OfertaItemInfosLabel>
-							<ViewFullRowSpaceBetween>
-								<View45>
-									<OfertaItemInfosLabel>Valor:</OfertaItemInfosLabel>
-								</View45>
-								<View45>
-									<OfertaItemInfosValue>R$ 00,00</OfertaItemInfosValue>
-								</View45>
-							</ViewFullRowSpaceBetween>
-							<ViewFullRowSpaceBetween>
-								<View45>
-									<OfertaItemInfosLabel>Entrega:</OfertaItemInfosLabel>
-								</View45>
-								<View45>
-									<OfertaItemInfosStatusGreen>Grátis</OfertaItemInfosStatusGreen>
-								</View45>
-							</ViewFullRowSpaceBetween>
-							<ViewFullRowSpaceBetween>
-								<View45>
-									<OfertaItemInfosLabel>Pode retirar:</OfertaItemInfosLabel>
-								</View45>
-								<View45>
-									<OfertaItemInfosValue>Não</OfertaItemInfosValue>
-								</View45>
-							</ViewFullRowSpaceBetween>
-							<ViewFullRowSpaceBetween>
-								<View45>
-									<OfertaItemInfosLabel>Tempo de entrega:</OfertaItemInfosLabel>
-								</View45>
-								<View45>
-									<OfertaItemInfosValue>2 horas</OfertaItemInfosValue>
-								</View45>
-							</ViewFullRowSpaceBetween>
-						</OfertaItemInfos>
-					</Message>
-
-					<MessageMe>
-						<MessageMeLabel>Poderia me enviar uma foto?</MessageMeLabel>
-					</MessageMe>
-
-					<Message>
-						<OfertaItemInfosLabel>Não to a fim não!</OfertaItemInfosLabel>
-					</Message>
-
-					<MessageMe>
-						<MessageMeLabel>Tá bom então</MessageMeLabel>
-					</MessageMe>
+					{
+						dataBudgetOfers.map((dataBudgetOfer: any, index: number) => {
+							if (dataBudgetOfer.type == 1) {
+								return (
+									<Message>
+										<OfertaItemInfos>
+											<OfertaItemInfosTitle>{budgetData.parceiro}</OfertaItemInfosTitle>
+											<OfertaItemInfosLabel>{dataBudgetOfer?.description}</OfertaItemInfosLabel>
+											<ViewFullRowSpaceBetween>
+												<View45>
+													<OfertaItemInfosLabel>Valor:</OfertaItemInfosLabel>
+												</View45>
+												<View45>
+													<OfertaItemInfosValue>R$ {dataBudgetOfer?.value}</OfertaItemInfosValue>
+												</View45>
+											</ViewFullRowSpaceBetween>
+											<ViewFullRowSpaceBetween>
+												<View45>
+													<OfertaItemInfosLabel>Entrega:</OfertaItemInfosLabel>
+												</View45>
+												<View45>
+													{
+														dataBudgetOfer?.delivery ? (
+															<OfertaItemInfosStatusGreen>{dataBudgetOfer?.delivery_value == 0 ? 'GRATIS' : 'R$ ' + dataBudgetOfer?.delivery_value}</OfertaItemInfosStatusGreen>
+														) : (
+															<OfertaItemInfos>NÃO</OfertaItemInfos>
+														)
+													}
+												</View45>
+											</ViewFullRowSpaceBetween>
+											<ViewFullRowSpaceBetween>
+												<View45>
+													<OfertaItemInfosLabel>Pode retirar:</OfertaItemInfosLabel>
+												</View45>
+												<View45>
+													{
+														dataBudgetOfer?.withdrawal ? (
+															<OfertaItemInfosStatusGreen>SIM</OfertaItemInfosStatusGreen>
+														) : (
+															<OfertaItemInfos>NÃO</OfertaItemInfos>
+														)
+													}
+												</View45>
+											</ViewFullRowSpaceBetween>
+											{
+												dataBudgetOfer?.delivery ? (
+													<ViewFullRowSpaceBetween>
+														<View45>
+															<OfertaItemInfosLabel>Tempo de entrega:</OfertaItemInfosLabel>
+														</View45>
+														<View45>
+															<OfertaItemInfosValue>{dataBudgetOfer?.delivery_time} horas</OfertaItemInfosValue>
+														</View45>
+													</ViewFullRowSpaceBetween>
+												) : null
+											}
+										</OfertaItemInfos>
+									</Message>
+								)
+							} else if (dataBudgetOfer.type == 2) {
+								return (
+									<MessageMe>
+										<MessageMeLabel>Poderia me enviar uma foto?</MessageMeLabel>
+									</MessageMe>
+								)
+							} else if (dataBudgetOfer.type == 3) {
+								return (
+									<Message>
+										<OfertaItemInfosLabel>Não to a fim não!</OfertaItemInfosLabel>
+									</Message>
+								)
+							}
+						})
+					}
 				</FinanceiroCont>
 			</Container>
 		</ScrollView>
@@ -129,12 +199,12 @@ const PerfilIngressos = ({ navigation, route }: Props) => {
 				<TextInput
 					value={formMessage}
 					placeholderTextColor="#6b6b6b"
-					style={{paddingVertical: 10}}
+					style={{ paddingVertical: 10 }}
 					onChangeText={(myText: string) => setFormMessage(myText)}
 					placeholder='Mensagem'
 					editable={true}
 				/>
-				<SendMessageIntSendBtn>					
+				<SendMessageIntSendBtn>
 					<SendMessageIntSendBtnicon source={message_send} />
 				</SendMessageIntSendBtn>
 			</SendMessageInt>
